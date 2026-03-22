@@ -58,6 +58,39 @@
         .btn-planilha:hover {
             background: #0b8043;
         }
+
+        /* Ajustes para telas menores (Mobile) */
+        @media (max-width: 768px) {
+            .legend {
+                padding: 15px;
+                line-height: 35px;
+                /* Mais espaço entre as linhas para tocar */
+                font-size: 14px;
+                max-width: 150px;
+            }
+
+            .legend i {
+                width: 22px;
+                /* Ícones da legenda maiores */
+                height: 22px;
+            }
+
+            .btn-planilha {
+                padding: 15px 20px;
+                /* Botão maior para o polegar */
+                font-size: 15px;
+                bottom: 20px;
+                left: 20px;
+            }
+
+            /* Aumenta os botões de zoom e o seletor de camadas do Leaflet */
+            .leaflet-bar a,
+            .leaflet-control-layers-toggle {
+                width: 44px !important;
+                height: 44px !important;
+                line-height: 44px !important;
+            }
+        }
     </style>
 </head>
 
@@ -88,11 +121,16 @@
             maxZoom: 20
         });
 
+        // Detecta se é mobile (largura menor que 768px)
+        const isMobile = window.innerWidth < 768;
+
         // Inicializa o mapa com a versão CLARA por padrão para melhor leitura
         const map = L.map('map', {
             center: [-22.884, -43.330],
             zoom: 15,
-            layers: [lightMap]
+            layers: [lightMap],
+            tap: true, // Melhora o clique em dispositivos iOS
+            gestureHandling: isMobile // Opcional: exige dois dedos para mover o mapa
         });
 
         // 2. Controle de Camadas (Botão de Troca)
@@ -149,24 +187,30 @@
                         const googleMapsLink = `https://www.google.com/maps/search/?api=1&query=${esc.coords[0]},${esc.coords[1]}`;
 
                         L.circleMarker(esc.coords, {
-                            radius: 9,
+                            radius: isMobile ? 12 : 9, // Aumenta para 12 no mobile
                             fillColor: cor,
                             color: "#000",
-                            weight: 2,
+                            weight: isMobile ? 3 : 2, // Borda mais grossa no mobile
                             opacity: 1,
                             fillOpacity: 0.9
                         }).addTo(map).bindPopup(`
-                            <div style="font-family: sans-serif; min-width: 180px;">
-                                <strong style="font-size: 14px; color: #333;">${esc.name}</strong><br>
-                                <hr style="margin: 5px 0; border: 0.5px solid #eee;">
-                                <b>Rede:</b> ${esc.tipo}<br>
-                                <b>Ensino:</b> ${esc.etapas}<br>
-                                <b>Estudantes:</b> ${esc.alunos}<br><br>
-                                <a href="${googleMapsLink}" target="_blank" style="display: block; text-align: center; background: #1a73e8; color: white; padding: 5px; border-radius: 4px; text-decoration: none; font-size: 11px;">
+                            <div style="font-family: sans-serif; min-width: 200px; padding: 5px;">
+                                <strong style="font-size: 16px; color: #333;">${esc.name}</strong><br>
+                                <hr style="margin: 8px 0; border: 0.5px solid #eee;">
+                                <div style="font-size: 14px; line-height: 1.6;">
+                                    <b>Rede:</b> ${esc.tipo}<br>
+                                    <b>Ensino:</b> ${esc.etapas}<br>
+                                    <b>Estudantes:</b> ${esc.alunos}
+                                </div>
+                                <br>
+                                <a href="${googleMapsLink}" target="_blank" style="display: block; text-align: center; background: #1a73e8; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: bold;">
                                     📍 Abrir no Google Maps
                                 </a>
                             </div>
-                        `);
+                        `, {
+                            minWidth: 220, // Garante que o popup não fique espremido no celular
+                            closeButton: true
+                        });
                     }
                 });
             });
