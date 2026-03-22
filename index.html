@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Mapa Escolar - Cascadura</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            height: 100dvh;
+            width: 100%;
+        }
+
+        .legend {
+            display: flex;
+            flex-direction: column;
+            background: white;
+            padding: 10px;
+            line-height: 25px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .legend i {
+            width: 18px;
+            height: 18px;
+            float: left;
+            margin-right: 8px;
+            border-radius: 50%;
+        }
+
+        .btn-planilha {
+            position: absolute;
+            bottom: 10px;
+            /* Abaixo dos botões de zoom */
+            left: 10px;
+            z-index: 1000;
+            background: #0f9d58;
+            /* Cor verde do Google Sheets */
+            color: white;
+            padding: 10px 15px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-family: sans-serif;
+            font-weight: bold;
+            font-size: 13px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-planilha:hover {
+            background: #0b8043;
+        }
+    </style>
+</head>
+
+<body>
+    <a href="https://docs.google.com/spreadsheets/d/1HmACYomemrqyQofW78XZFUzkIXp-jG_nEnIhUQRFj30/edit?usp=sharing"
+        target="_blank" class="btn-planilha">
+        📊 Ver Planilha
+    </a>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // 1. Definição dos Mapas Base
+        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        });
+
+        const googleHybrid = L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+            attribution: '© Google Maps'
+        });
+
+        // NOVA CAMADA: CartoDB Positron (Versão Clara/Clean)
+        const lightMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap contributors © CARTO',
+            subdomains: 'abcd',
+            maxZoom: 20
+        });
+
+        // Inicializa o mapa com a versão CLARA por padrão para melhor leitura
+        const map = L.map('map', {
+            center: [-22.884, -43.330],
+            zoom: 15,
+            layers: [lightMap]
+        });
+
+        // 2. Controle de Camadas (Botão de Troca)
+        const baseMaps = {
+            "Mapa Claro (Clean)": lightMap,
+            "Satélite Híbrido": googleHybrid,
+            "Mapa Padrão (OSM)": osm
+        };
+        L.control.layers(baseMaps).addTo(map);
+
+        const legend = L.control({ position: 'bottomright' });
+        legend.onAdd = function (map) {
+            const div = L.DomUtil.create('div', 'legend');
+            div.innerHTML += '<h4>Legenda</h4>';
+            div.innerHTML += '<div><i style="background: yellow; border: 1px solid #000"></i> No bairro </div>';
+            div.innerHTML += '<div><i style="background: orange; border: 1px solid #000"></i> Até 1km </div>';
+            return div;
+        };
+        legend.addTo(map);
+
+        // Dados das Escolas
+        const escolas = [
+            { name: "C.E. Recanto Disney", coords: [-22.8780, -43.3281], tipo: "Privada", etapas: "Infantil e Fundamental I", alunos: "~250" },
+            { name: "C.E. Moregula", coords: [-22.8784, -43.3222], tipo: "Privada", etapas: "Fundamental e Médio", alunos: "~400" },
+            { name: "Santa Mônica Rede de Ensino", coords: [-22.8807, -43.3230], tipo: "Privada", etapas: "Fundamental e Médio", alunos: "~600" },
+            { name: "Colégio Ação1", coords: [-22.8830, -43.3219], tipo: "Privada", etapas: "Fundamental e Médio", alunos: "~350" },
+            { name: "EDI Teresinha Sardoux", coords: [-22.8885, -43.3303], tipo: "Pública (Municipal)", etapas: "Educação Infantil", alunos: "~200" },
+            { name: "Escola Municipal Paraná", coords: [-22.8875, -43.3328], tipo: "Pública (Municipal)", etapas: "Fundamental I", alunos: "~500" },
+            { name: "CIEP Benedito Cerqueira", coords: [-22.8837, -43.3300], tipo: "Pública (Estadual)", etapas: "Fundamental II e Médio", alunos: "~800" },
+            { name: "FAETEC Quintino", coords: [-22.8882, -43.3205], tipo: "Pública (Estadual)", etapas: "Técnico e Superior", alunos: "+2000" },
+            { name: "Colégio Estadual João Vicente", coords: [-22.8732, -43.3295], tipo: "Pública (Estadual)", etapas: "Fundamental e Médio", alunos: "~700" }
+        ];
+
+        fetch('./Maps/Cascadura.json')
+            .then(res => res.json())
+            .then(bairroGeojson => {
+                // Estilo do bairro adaptado: cinza escuro para o mapa claro
+                const camadaBairro = L.geoJSON(bairroGeojson, {
+                    style: { color: "#555", weight: 2, fillOpacity: 0.05, dashArray: '5, 5' }
+                }).addTo(map);
+
+                const buffer = turf.buffer(bairroGeojson.features[0], 1, { units: 'kilometers' });
+
+                escolas.forEach(esc => {
+                    const pt = turf.point([esc.coords[1], esc.coords[0]]);
+                    const dentroBairro = turf.booleanPointInPolygon(pt, bairroGeojson.features[0]);
+                    const dentroBuffer = turf.booleanPointInPolygon(pt, buffer);
+
+                    let cor = "";
+                    if (dentroBairro) cor = "yellow";
+                    else if (dentroBuffer) cor = "orange";
+
+                    if (cor !== "") {
+                        const googleMapsLink = `https://www.google.com/maps/search/?api=1&query=${esc.coords[0]},${esc.coords[1]}`;
+
+                        L.circleMarker(esc.coords, {
+                            radius: 9,
+                            fillColor: cor,
+                            color: "#000",
+                            weight: 2,
+                            opacity: 1,
+                            fillOpacity: 0.9
+                        }).addTo(map).bindPopup(`
+                            <div style="font-family: sans-serif; min-width: 180px;">
+                                <strong style="font-size: 14px; color: #333;">${esc.name}</strong><br>
+                                <hr style="margin: 5px 0; border: 0.5px solid #eee;">
+                                <b>Rede:</b> ${esc.tipo}<br>
+                                <b>Ensino:</b> ${esc.etapas}<br>
+                                <b>Estudantes:</b> ${esc.alunos}<br><br>
+                                <a href="${googleMapsLink}" target="_blank" style="display: block; text-align: center; background: #1a73e8; color: white; padding: 5px; border-radius: 4px; text-decoration: none; font-size: 11px;">
+                                    📍 Abrir no Google Maps
+                                </a>
+                            </div>
+                        `);
+                    }
+                });
+            });
+    </script>
+</body>
+
+</html>
