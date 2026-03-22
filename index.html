@@ -1,7 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mapa Escolar - Cascadura</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
@@ -187,10 +189,10 @@
                         const googleMapsLink = `https://www.google.com/maps/search/?api=1&query=${esc.coords[0]},${esc.coords[1]}`;
 
                         L.circleMarker(esc.coords, {
-                            radius: isMobile ? 12 : 9, // Aumenta para 12 no mobile
+                            radius: isMobile ? 18 : 9, // Aumenta para 12 no mobile
                             fillColor: cor,
                             color: "#000",
-                            weight: isMobile ? 3 : 2, // Borda mais grossa no mobile
+                            weight: isMobile ? 4 : 2, // Borda mais grossa no mobile
                             opacity: 1,
                             fillOpacity: 0.9
                         }).addTo(map).bindPopup(`
